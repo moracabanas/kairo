@@ -1,0 +1,242 @@
+services:
+  timescale:
+    image: timescale/timescaledb:latest-pg16
+    container_name: kairo_timescale
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-kairo}
+      POSTGRES_EXTENSIONS: ${POSTGRES_EXTENSIONS:-timescaledb}
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+      - ./scripts/init-postgres-extensions.sql:/docker-entrypoint-initdb.d/init-extensions.sql:ro
+    networks:
+      - kairo_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-kairo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: kairo_mosquitto
+    restart: unless-stopped
+    command: mosquitto -c /mosquitto-no-auth.conf
+    ports:
+      - "1883:1883"
+      - "1884:8080"
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_logs:/mosquitto/log
+    networks:
+      - kairo_network
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "healthcheck", "-W", "3"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  timesfm:
+    build:
+      context: ./services/timesfm
+      dockerfile: Dockerfile
+    container_name: kairo_timesfm
+    restart: unless-stopped
+    environment:
+      TIMESFM_MODEL_PATH: ${TIMESFM_MODEL_PATH:-/models/timesfm}
+      TIMESFM_DEVICE: ${TIMESFM_DEVICE:-cpu}
+      TIMESFM_CONTEXT_LENGTH: ${TIMESFM_CONTEXT_LENGTH:-512}
+      TIMESFM_FORECAST_LENGTH: ${TIMESFM_FORECAST_LENGTH:-128}
+    ports:
+      - "8001:8000"
+    volumes:
+      - model_storage:/models
+    networks:
+      - kairo_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  clearml-redis:
+    image: redis:8.2.3
+    container_name: kairo_clearml_redis
+    restart: unless-stopped
+    volumes:
+      - clearml_redis_data:/data
+    networks:
+      kairo_network:
+        aliases:
+          - redis
+
+  clearml-mongo:
+    image: mongo:8.0.15
+    container_name: kairo_clearml_mongo
+    restart: unless-stopped
+    command: --setParameter internalQueryMaxBlockingSortMemoryUsageBytes=196100200
+    volumes:
+      - clearml_mongo_data:/data/db
+      - clearml_mongo_configdb:/data/configdb
+    networks:
+      kairo_network:
+        aliases:
+          - mongo
+
+  clearml-elasticsearch:
+    image: elasticsearch:8.19.9
+    container_name: kairo_clearml_elasticsearch
+    restart: unless-stopped
+    environment:
+      bootstrap.memory_lock: "true"
+      cluster.name: clearml
+      discovery.type: "single-node"
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - clearml_elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      kairo_network:
+        aliases:
+          - elasticsearch
+
+  clearml-apiserver:
+    image: clearml/server:latest
+    container_name: kairo_clearml_apiserver
+    restart: unless-stopped
+    command: apiserver
+    depends_on:
+      - clearml-redis
+      - clearml-mongo
+      - clearml-elasticsearch
+    environment:
+      CLEARML_ELASTIC_SERVICE_HOST: clearml-elasticsearch
+      CLEARML_ELASTIC_SERVICE_PORT: 9200
+      CLEARML_MONGODB_SERVICE_HOST: clearml-mongo
+      CLEARML_MONGODB_SERVICE_PORT: 27017
+      CLEARML_REDIS_SERVICE_HOST: clearml-redis
+      CLEARML_REDIS_SERVICE_PORT: 6379
+      CLEARML_SERVER_DEPLOYMENT_TYPE: linux
+      CLEARML__apiserver__pre_populate__enabled: "true"
+      CLEARML__apiserver__pre_populate__zip_files: "/opt/clearml/db-pre-populate"
+      CLEARML__apiserver__pre_populate__artifacts_path: "/mnt/fileserver"
+      CLEARML__services__async_urls_delete__enabled: "true"
+      CLEARML__services__async_urls_delete__fileserver__url_prefixes: "[${CLEARML_FILES_HOST:-}]"
+    ports:
+      - "8008:8008"
+    volumes:
+      - clearml_server_logs:/var/log/clearml
+      - clearml_server_config:/opt/clearml/config
+      - clearml_server_files:/mnt/fileserver
+    networks:
+      kairo_network:
+        aliases:
+          - apiserver
+
+  clearml-webserver:
+    image: clearml/server:latest
+    container_name: kairo_clearml_webserver
+    restart: unless-stopped
+    command: webserver
+    depends_on:
+      - clearml-apiserver
+    ports:
+      - "8080:80"
+    networks:
+      - kairo_network
+
+  clearml-fileserver:
+    image: clearml/server:latest
+    container_name: kairo_clearml_fileserver
+    restart: unless-stopped
+    command: fileserver
+    environment:
+      CLEARML__fileserver__delete__allow_batch: "true"
+    ports:
+      - "8081:8081"
+    volumes:
+      - clearml_server_logs:/var/log/clearml
+      - clearml_server_files:/mnt/fileserver
+      - clearml_server_config:/opt/clearml/config
+    networks:
+      kairo_network:
+        aliases:
+          - fileserver
+
+  clearml-async-delete:
+    image: clearml/server:latest
+    container_name: kairo_clearml_async_delete
+    restart: unless-stopped
+    depends_on:
+      - clearml-apiserver
+      - clearml-redis
+      - clearml-mongo
+      - clearml-elasticsearch
+    environment:
+      CLEARML_ELASTIC_SERVICE_HOST: clearml-elasticsearch
+      CLEARML_ELASTIC_SERVICE_PORT: 9200
+      CLEARML_MONGODB_SERVICE_HOST: clearml-mongo
+      CLEARML_MONGODB_SERVICE_PORT: 27017
+      CLEARML_REDIS_SERVICE_HOST: clearml-redis
+      CLEARML_REDIS_SERVICE_PORT: 6379
+      PYTHONPATH: /opt/clearml/apiserver
+      CLEARML__services__async_urls_delete__fileserver__url_prefixes: "[${CLEARML_FILES_HOST:-}]"
+    entrypoint:
+      - python3
+      - -m
+      - jobs.async_urls_delete
+      - --fileserver-host
+      - http://clearml-fileserver:8081
+    volumes:
+      - clearml_server_logs:/var/log/clearml
+      - clearml_server_config:/opt/clearml/config
+    networks:
+      - kairo_network
+
+  clearml-agent-services:
+    image: clearml/clearml-agent-services:latest
+    container_name: kairo_clearml_agent_services
+    restart: on-failure
+    privileged: true
+    environment:
+      CLEARML_HOST_IP: ${CLEARML_HOST_IP:-}
+      CLEARML_WEB_HOST: ${CLEARML_WEB_HOST:-http://localhost:8080}
+      CLEARML_API_HOST: ${CLEARML_API_HOST:-http://localhost:8008}
+      CLEARML_FILES_HOST: ${CLEARML_FILES_HOST:-http://localhost:8081}
+      CLEARML_API_ACCESS_KEY: ${CLEARML_API_ACCESS_KEY:-}
+      CLEARML_API_SECRET_KEY: ${CLEARML_API_SECRET_KEY:-}
+      CLEARML_AGENT_GIT_USER: ${GIT_USER:-}
+      CLEARML_AGENT_GIT_PASS: ${GIT_PASS:-}
+      CLEARML_WORKER_ID: "clearml-services"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - clearml_agent_config:/root/.clearml
+    depends_on:
+      - clearml-apiserver
+    networks:
+      - kairo_network
+
+networks:
+  kairo_network:
+    driver: bridge
+
+volumes:
+  timescale_data:
+  mosquitto_data:
+  mosquitto_logs:
+  model_storage:
+  clearml_redis_data:
+  clearml_mongo_data:
+  clearml_mongo_configdb:
+  clearml_elasticsearch_data:
+  clearml_server_logs:
+  clearml_server_config:
+  clearml_server_files:
+  clearml_agent_config:

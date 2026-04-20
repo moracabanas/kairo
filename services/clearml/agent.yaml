@@ -1,0 +1,15 @@
+agent:
+  mode: python  # or "docker" if using containers
+  queue: training  # queue name for training tasks
+  docker_image: python:3.11  # base image for training
+
+clearml:
+  api_server: ${CLEARML_API_HOST:-http://localhost:8080}
+  web_server: ${CLEARML_WEB_HOST:-http://localhost:8080}
+  files_server: ${CLEARML_FILES_HOST:-http://localhost:8081}
+  api_key: ${CLEARML_API_ACCESS_KEY}
+  api_secret: ${CLEARML_API_SECRET_KEY}
+
+training:
+  output_dir: /tmp/clearml_output
+  model_store: /models

@@ -1,0 +1,15 @@
+[project]
+name = "timesfm-service"
+version = "0.1.0"
+description = "TimesFM inference service"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "numpy",
+    "pandas",
+    "torch",
+    "transformers>=4.40.0",
+    "safetensors",
+    "accelerate",
+]

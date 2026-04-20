@@ -319,7 +319,25 @@ The review process:
 3. Approved designs are marked with approval comment
 4. Implementation proceeds with approved designs
 
-### Stitch Project Structure
+### Stitch Project Reference
+
+**Project Name:** kairo
+**Project ID:** 10542915137415484180
+**Project URL:** https://stitch.firebase.google.com/projects/10542915137415484180
+
+#### Phase 1 Screens (Pending Generation)
+
+Due to Stitch API timeouts, Phase 1 screens require manual generation in Stitch:
+
+| Screen | Description | Status |
+|--------|-------------|--------|
+| Login | Email/password + OAuth buttons | Pending |
+| Dashboard Layout | Sidebar + main content area | Pending |
+| Signal List | Table with filters and pagination | Pending |
+| Signal Detail | Chart with metadata | Pending |
+| Event Timeline | Timeline view with filters | Pending | |
+
+#### Stitch Project Structure
 
 The Kairo Stitch project contains:
 
@@ -348,3 +366,51 @@ for reduced brightness.
 
 Dark mode is activated via user preference or system setting.
 The implementation uses CSS custom properties for theme switching.
+
+## Notification Channels Implementation (Phase 6)
+
+### Channel Types
+
+The notification system supports multiple channel types for delivering alerts:
+
+| Type | Config Fields | Description |
+|------|---------------|-------------|
+| email | `email` | Email address for notifications |
+| webhook | `url` | HTTP endpoint for POST notifications |
+| telegram | `bot_token`, `chat_id` | Telegram bot for messaging |
+| mqtt | `topic` | MQTT topic for IoT integrations |
+| mcp | `server_url` | Model Context Protocol server |
+
+### Environment Variables
+
+Email notifications require SMTP configuration:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| EMAIL_HOST | SMTP server hostname | localhost |
+| EMAIL_PORT | SMTP server port | 587 |
+| EMAIL_SECURE | Use TLS/SSL | false |
+| EMAIL_USER | SMTP authentication user | - |
+| EMAIL_PASS | SMTP authentication password | - |
+| EMAIL_FROM | Sender email address | noreply@kairo.io |
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/notifications/channels | List all channels for org |
+| POST | /api/notifications/channels | Create new channel |
+| PATCH | /api/notifications/channels/[id] | Update channel (enabled, config) |
+| DELETE | /api/notifications/channels/[id] | Delete channel |
+
+### Learnings
+
+1. **Channel type enum mismatch**: Frontend and backend must use same channel types.
+   Initially had email/slack/webhook/sms but spec required email/webhook/telegram/mqtt/mcp.
+   Fixed by updating both API route schema and frontend component.
+
+2. **Config validation**: Each channel type has different config fields. The create
+   form conditionally renders input fields based on selected channel type.
+
+3. **Org isolation**: All queries filter by org_id from authenticated user's session.
+   RLS policies provide additional database-level enforcement.
