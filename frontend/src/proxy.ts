@@ -7,8 +7,8 @@ export async function proxy(request: NextRequest) {
   });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:9999",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key",
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:54321",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
     {
       cookies: {
         getAll() {
@@ -32,8 +32,10 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isAuthPage = request.nextUrl.pathname.startsWith("/login") ||
-                     request.nextUrl.pathname.startsWith("/signup");
+                     request.nextUrl.pathname.startsWith("/signup") ||
+                     request.nextUrl.pathname.startsWith("/auth/");
   const isProtectedRoute = request.nextUrl.pathname.startsWith("/dashboard") ||
+                           request.nextUrl.pathname.startsWith("/onboarding") ||
                            request.nextUrl.pathname.startsWith("/api/");
 
   if (!user && isProtectedRoute) {

@@ -1,9 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseClient } from "./supabase/client";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:9999";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key";
+// Re-export the browser client singleton for backwards compatibility
+export const supabase = getSupabaseClient();
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export function getSupabase() {
+  return getSupabaseClient();
+}
 
 export interface OrgUser {
   id: string;

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -36,6 +36,7 @@ export default function LoginPage() {
     setError("");
     setIsLoading(true);
 
+    const supabase = getSupabaseClient();
     const { error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
@@ -50,6 +51,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    const supabase = getSupabaseClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -62,6 +64,7 @@ export default function LoginPage() {
   };
 
   const handleGitHubLogin = async () => {
+    const supabase = getSupabaseClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "github",
       options: {

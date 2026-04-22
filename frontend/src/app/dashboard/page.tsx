@@ -2,16 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertTriangle, TrendingUp, Database, Clock, CheckCircle } from "lucide-react";
 import { AnomalyEvent, EventSeverity } from "@/lib/supabase";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://localhost:9999";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface EventStats {
   critical: number;
@@ -46,6 +42,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const checkUser = async () => {
+      const supabase = getSupabaseClient();
       const { data: { user: sessionUser } } = await supabase.auth.getUser();
       if (!sessionUser) {
         router.push("/login");
@@ -60,7 +57,7 @@ export default function DashboardPage() {
         .single();
 
       if (!userData?.org_id) {
-        setLoading(false);
+        router.push("/onboarding");
         return;
       }
       setOrgId(userData.org_id);
@@ -77,6 +74,7 @@ export default function DashboardPage() {
   }, [router]);
 
   const loadEventStats = async (orgId: string) => {
+    const supabase = getSupabaseClient();
     try {
       const { data: events, error } = await supabase
         .from("events")
@@ -113,6 +111,7 @@ export default function DashboardPage() {
   };
 
   const loadRecentJobs = async (orgId: string) => {
+    const supabase = getSupabaseClient();
     try {
       const { data: jobs, error } = await supabase
         .from("training_jobs")
@@ -129,6 +128,7 @@ export default function DashboardPage() {
   };
 
   const handleSignOut = async () => {
+    const supabase = getSupabaseClient();
     await supabase.auth.signOut();
     router.push("/login");
   };
