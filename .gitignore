@@ -20,7 +20,6 @@ dist/
 # Misc
 .DS_Store
 *.pem
-.sisyphus/
 
 # Debug
 npm-debug.log*

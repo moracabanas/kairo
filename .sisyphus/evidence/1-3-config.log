@@ -1,0 +1,251 @@
+name: kairo
+services:
+  auth:
+    container_name: kairo_auth
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: true
+    environment:
+      API_EXTERNAL_URL: http://localhost:9999
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: "9999"
+      GOTRUE_DB_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/kairo?search_path=auth
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP: authenticated
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_JWT_SECRET: placeholder-jwt-secret-change-in-production
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_SITE_URL: http://localhost:3000
+      GOTRUE_SMTP_ADMIN_EMAIL: admin@kairo.local
+      GOTRUE_SMTP_HOST: smtp.mailgun.org
+      GOTRUE_SMTP_PASS: ""
+      GOTRUE_SMTP_PORT: "587"
+      GOTRUE_SMTP_SENDER_NAME: Kairo
+      GOTRUE_SMTP_USER: ""
+      GOTRUE_URI_ALLOW_LIST: '*'
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --no-verbose
+        - --tries=1
+        - --spider
+        - http://localhost:9999/health
+      timeout: 5s
+      interval: 10s
+      retries: 5
+      start_period: 30s
+    image: supabase/gotrue:latest
+    networks:
+      kairo_network: null
+    ports:
+      - mode: ingress
+        target: 9999
+        published: "9999"
+        protocol: tcp
+    restart: unless-stopped
+  clearml_agent:
+    container_name: kairo_clearml_agent
+    depends_on:
+      minio:
+        condition: service_started
+        required: true
+    environment:
+      CLEARML_AGENT_GIT_PASS: ""
+      CLEARML_AGENT_GIT_USER: ""
+      CLEARML_AGENT_WORKING_DIR: /opt/clearml_agent_working_dir
+      CLEARML_API_ACCESS_KEY: placeholder
+      CLEARML_API_HOST: http://localhost:8080
+      CLEARML_API_SECRET_KEY: placeholder
+      CLEARML_FILES_HOST: http://localhost:8081
+      CLEARML_WEB_HOST: http://localhost:8080
+    image: allegroai/clearml-agent:latest
+    networks:
+      kairo_network: null
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: clearml_data
+        target: /root/.clearml
+        volume: {}
+      - type: volume
+        source: clearml_agent_working_dir
+        target: /opt/clearml_agent_working_dir
+        volume: {}
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        bind:
+          create_host_path: true
+  minio:
+    command:
+      - server
+      - /data
+      - --console-address
+      - :9001
+    container_name: kairo_minio
+    environment:
+      MINIO_DEFAULT_BUCKETS: models,artifacts
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: minioadmin
+    healthcheck:
+      test:
+        - CMD
+        - mc
+        - ready
+        - local
+      timeout: 5s
+      interval: 10s
+      retries: 5
+      start_period: 30s
+    image: minio/minio:latest
+    networks:
+      kairo_network: null
+    ports:
+      - mode: ingress
+        target: 9000
+        published: "9000"
+        protocol: tcp
+      - mode: ingress
+        target: 9001
+        published: "9001"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: minio_data
+        target: /data
+        volume: {}
+  mosquitto:
+    command:
+      - mosquitto
+      - -c
+      - /mosquitto-no-auth.conf
+    container_name: kairo_mosquitto
+    healthcheck:
+      test:
+        - CMD
+        - mosquitto_sub
+        - -t
+        - $$SYS/#
+        - -C
+        - "1"
+        - -i
+        - healthcheck
+        - -W
+        - "3"
+      timeout: 5s
+      interval: 10s
+      retries: 5
+      start_period: 10s
+    image: eclipse-mosquitto:latest
+    networks:
+      kairo_network: null
+    ports:
+      - mode: ingress
+        target: 1883
+        published: "1883"
+        protocol: tcp
+      - mode: ingress
+        target: 8080
+        published: "1884"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: mosquitto_data
+        target: /mosquitto/data
+        volume: {}
+      - type: volume
+        source: mosquitto_logs
+        target: /mosquitto/log
+        volume: {}
+  postgres:
+    container_name: kairo_postgres
+    environment:
+      POSTGRES_DB: kairo
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U postgres -d kairo
+      timeout: 5s
+      interval: 10s
+      retries: 5
+      start_period: 30s
+    image: timescale/timescaledb:latest-pg16
+    networks:
+      kairo_network: null
+    ports:
+      - mode: ingress
+        target: 5432
+        published: "5432"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: postgres_data
+        target: /var/lib/postgresql/data
+        volume: {}
+  timesfm:
+    build:
+      context: /Users/alberto/kairo/services/timesfm
+      dockerfile: Dockerfile
+    container_name: kairo_timesfm
+    depends_on:
+      minio:
+        condition: service_healthy
+        required: true
+    environment:
+      TIMESFM_CONTEXT_LENGTH: "512"
+      TIMESFM_DEVICE: cpu
+      TIMESFM_FORECAST_LENGTH: "128"
+      TIMESFM_MODEL_PATH: /models/timesfm
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8000/health
+      timeout: 10s
+      interval: 30s
+      retries: 3
+      start_period: 1m0s
+    networks:
+      kairo_network: null
+    ports:
+      - mode: ingress
+        target: 8000
+        published: "8001"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: model_storage
+        target: /models
+        volume: {}
+networks:
+  kairo_network:
+    name: kairo_kairo_network
+    driver: bridge
+volumes:
+  clearml_agent_working_dir:
+    name: kairo_clearml_agent_working_dir
+  clearml_data:
+    name: kairo_clearml_data
+  minio_data:
+    name: kairo_minio_data
+  model_storage:
+    name: kairo_model_storage
+  mosquitto_data:
+    name: kairo_mosquitto_data
+  mosquitto_logs:
+    name: kairo_mosquitto_logs
+  postgres_data:
+    name: kairo_postgres_data

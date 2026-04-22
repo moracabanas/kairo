@@ -1,0 +1,16 @@
+Port check for Kairo Docker Compose
+
+Required ports from task:
+  - 3000 (frontend) - will be exposed by Next.js
+  - 5432 (postgres) - exposed in docker-compose
+  - 9000 (minio API) - exposed in docker-compose
+  - 1883 (mqtt) - exposed in docker-compose
+
+All docker-compose exposed ports:
+        published: "9999"
+        published: "9000"
+        published: "9001"
+        published: "1883"
+        published: "1884"
+        published: "5432"
+        published: "8001"
