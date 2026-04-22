@@ -1,0 +1,107 @@
+[
+  {
+    "timestamp": "2024-01-01T00:00:00Z",
+    "value": 10.5,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:01:00Z",
+    "value": 11.2,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:02:00Z",
+    "value": 12.1,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:03:00Z",
+    "value": 11.8,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:04:00Z",
+    "value": 10.9,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:05:00Z",
+    "value": 10.2,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:06:00Z",
+    "value": 9.8,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:07:00Z",
+    "value": 9.5,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:08:00Z",
+    "value": 9.9,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:09:00Z",
+    "value": 10.3,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:10:00Z",
+    "value": 11.0,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:15:00Z",
+    "value": 12.5,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:20:00Z",
+    "value": 13.2,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:25:00Z",
+    "value": 12.8,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:30:00Z",
+    "value": 11.5,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:35:00Z",
+    "value": 10.8,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:40:00Z",
+    "value": 10.1,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:45:00Z",
+    "value": 9.6,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:50:00Z",
+    "value": 9.2,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T00:55:00Z",
+    "value": 8.9,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  },
+  {
+    "timestamp": "2024-01-01T01:00:00Z",
+    "value": 8.5,
+    "metadata": {"sensor": "temp_1", "location": "room_a"}
+  }
+]

@@ -5,6 +5,9 @@ node_modules/
 
 # Testing
 coverage/
+test-results/
+playwright-report/
+playwright/test-results/
 
 # Next.js
 .next/
@@ -17,6 +20,7 @@ dist/
 # Misc
 .DS_Store
 *.pem
+.sisyphus/
 
 # Debug
 npm-debug.log*
@@ -42,3 +46,8 @@ next-env.d.ts
 .vscode/
 *.swp
 *.swo
+
+# Package manager lock files (optional - add back if needed)
+# package-lock.json
+# pnpm-lock.yaml
+# yarn.lock
